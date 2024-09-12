@@ -173,7 +173,7 @@ def train_end_evaluate(args):
         colsample_bytree=1,  # Subsample ratio of columns when constructing each tree
         gamma=0.001,  # Minimum loss reduction required to make a further partition
         reg_alpha=1.0,  # L1 regularization term on weights
-        reg_lambda=1.0,  # L2 regularization term on weightsss
+        reg_lambda=1.0,  # L2 regularization term on weight
     )
 
     # fit and eval N times
