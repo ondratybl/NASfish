@@ -13,15 +13,15 @@ from . import measure
 def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
     tenas = get_tenas(net, net(inputs))
-    tenas_prob = get_tenas(net, net(inputs), use_logits=False)
-    fisher = get_fisher(net, inputs)
-    fisher_prob = get_fisher(net, inputs, use_logits=False)
+    #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
+    #fisher = get_fisher(net, inputs)
+    #fisher_prob = get_fisher(net, inputs, use_logits=False)
 
     rtn = {}
     rtn.update(get_matrix_stats(tenas, 'tenas'))
-    rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
-    rtn.update(get_matrix_stats(fisher, 'fisher'))
-    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob'))
+    #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
+    #rtn.update(get_matrix_stats(fisher, 'fisher'))
+    #rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob'))
 
     return rtn
 
