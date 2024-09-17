@@ -43,7 +43,7 @@ def get_batch_jacobian(net, x, target):
 
 def eval_score(jacob, labels=None):
     corrs = np.corrcoef(jacob)
-    v, _ = np.linalg.eig(corrs)
+    v, _ = np.linalg.eigh(corrs)
     k = 1e-5
     return -np.sum(np.log(v + k) + 1.0 / (v + k))
 
