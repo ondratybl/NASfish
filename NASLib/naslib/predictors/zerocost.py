@@ -24,6 +24,7 @@ class ZeroCost(Predictor):
         self.dataload = "random"
         self.num_imgs_or_batches = num_imgs_or_batch
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(f'Device: {self.device} for {self.method_type}')
 
     def query_batch(self, graphs, dataloader):
         scores = []
