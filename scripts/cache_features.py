@@ -1,6 +1,8 @@
 import click
 import pandas as pd
 from torch.utils.data import DataLoader, Sampler
+import wandb
+import time
 
 from graf_nas.features.zero_cost import get_zcp_dataloader
 from datetime import datetime
@@ -44,10 +46,15 @@ def get_n_classes(dataset):
     else:
         return "Dataset not recognized"
 
+def get_timestamp():
+    return datetime.fromtimestamp(time.time()).strftime("%d-%m-%Y-%H-%M-%S-%f")
+
 @click.command()
 @click.option('--benchmark', default='nb201')
 @click.option('--dataset', default='cifar10', help='Required only for the dataset api.')
 @click.option('--config', default='../graf_nas/configs/nb201.json')
+@click.option('--wandb_key', required=True)
+@click.option('--wandb_project', default='graf_sampling')
 @click.option('--target_path', required=True,
                         help="Path to network targets (e.g. accuracy). It should be a .csv file with net hashes as "
                              "index and `target_name` among the columns.")
@@ -55,10 +62,14 @@ def get_n_classes(dataset):
 @click.option('--start_batch', default=0)
 @click.option('--batch_size', default=32)
 @click.option('--num_batches', default=1)
-def main(benchmark, dataset, config, target_path, out_path, start_batch, batch_size, num_batches):
+def main(benchmark, dataset, config, wandb_key, wandb_project, target_path, out_path, start_batch, batch_size, num_batches):
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = get_timestamp()
     out_path = out_path + f'{timestamp}.csv'
+
+    # initialize wandb
+    wandb.login(key=wandb_key)
+    wandb.init(project=wandb_project, config={'benchmark': benchmark, 'dataset': dataset, 'config': config, 'target_path': target_path, 'out_path': out_path, 'start_batch': start_batch, 'batch_size': batch_size, 'num_batches': num_batches}, name=f"{benchmark}_{dataset}_{timestamp}")
 
     zcps = ['vkdnw', 'epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain',
             'snip', 'synflow', 'zen']

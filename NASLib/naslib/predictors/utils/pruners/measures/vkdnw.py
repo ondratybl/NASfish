@@ -71,6 +71,17 @@ def get_matrix_stats(matrix, matrix_name, ret_all=False):
 
 def get_statistical_tests(lambdas):
 
+    if (lambdas.max() == np.inf) or (lambdas.min() == 0):
+        return {
+            'skew' : None,
+            'kurtosis' : None,
+            'kstest' : None,
+            'cramervonmises' : None,
+            'chisquare' : None,
+            'wasserstein_distance' : None,
+            'energy_distance' : None,
+        }
+
     # Normalize
     lambdas = lambdas - lambdas.min()
     lambdas = lambdas / lambdas.max()
