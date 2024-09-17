@@ -128,9 +128,8 @@ class GRAF:
                     raise FeatureNotFoundException(f"Zero-cost proxy {zcp_key} not found in precomputed data.")
 
                 if naslib_net is None:
-                    naslib_net = net.to_naslib(max(self.dataloader.dataset.targets)+1)
+                    naslib_net = net.to_naslib(len(list(set((self.dataloader.dataset.targets)))))
                     naslib_net.parse()
-
                 result = self.compute_zcp(naslib_net, zcp_key)
                 if self.cache_zcp_scores:
                     if isinstance(result, dict):

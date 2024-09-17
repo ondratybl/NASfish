@@ -5,7 +5,6 @@ from scipy.stats import skew, kurtosis, kstest, cramervonmises, chisquare, wasse
     gaussian_kde
 import gc
 import numpy as np
-from sklearn.preprocessing import minmax_scale
 
 from . import measure
 
@@ -55,7 +54,6 @@ def get_matrix_stats(matrix, matrix_name, ret_all=False):
             matrix_name + '_max': lambdas.max().item(),
             matrix_name + '_min': lambdas.min().item(),
             matrix_name + '_coef': lambdas.std().item() / lambdas.mean().item() if lambdas.mean().item() > 0 else None,
-            matrix_name + '_entropy': estimate_entropy_kde(lambdas.cpu().numpy()),
     })
 
     # Statistics
@@ -80,6 +78,7 @@ def get_statistical_tests(lambdas):
             'chisquare' : None,
             'wasserstein_distance' : None,
             'energy_distance' : None,
+            'entropy' : None,
         }
 
     # Normalize
@@ -94,7 +93,8 @@ def get_statistical_tests(lambdas):
         'cramervonmises': cramervonmises(lambdas, 'uniform').pvalue,
         'chisquare': chisquare(lambdas).pvalue,
         'wasserstein_distance': wasserstein_distance(lambdas, np.linspace(0, 1, len(lambdas))),
-        'energy_distance': energy_distance(lambdas, np.linspace(0, 1, len(lambdas)))
+        'energy_distance': energy_distance(lambdas, np.linspace(0, 1, len(lambdas))),
+        'entropy': estimate_entropy_kde(lambdas),
     }
 
     return rtn
