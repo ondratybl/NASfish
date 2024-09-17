@@ -122,7 +122,7 @@ def train_end_evaluate(args):
     if not args['debug_']:
         cfg_args = {k: v for k, v in args.items() if not k.endswith('_')}
         wandb.login(key=args['wandb_key_'])
-        wandb.init(project=args['wandb_project_'], config=cfg_args, name=f"{benchmark}_{dataset}_{get_timestamp()}")
+        wandb.init(project=args['wandb_project_'], config=cfg_args, name=f"train_{benchmark}_{dataset}_{get_timestamp()}", tags=[benchmark, dataset, 'cache'])
 
     # get iterator of all available networks
     if benchmark == 'darts':
