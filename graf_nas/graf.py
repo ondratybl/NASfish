@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import Union
+import wandb
 
 import pandas as pd
 from tqdm import tqdm
@@ -172,6 +173,7 @@ def create_dataset(graf, nets: Iterable[NetBase], target_df=None, zcp_names: lis
         if use_zcp:
             assert zcp_names is not None
             zcps = graf.compute_zcp_scores(net, zcp_names)
+            wandb.log({**zcps, **{'net': net.get_hash()}})
             features = {**features, **zcps}
 
         if use_onehot:

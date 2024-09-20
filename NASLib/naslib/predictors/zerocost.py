@@ -48,7 +48,7 @@ class ZeroCost(Predictor):
                 measure_names=[self.method_type],
             )
 
-        if self.method_type == 'vkdnw':
+        if self.method_type == 'vkdnw' or self.method_type == 'vkdnw_hist':
             return score
 
         if math.isnan(score) or math.isinf(score):

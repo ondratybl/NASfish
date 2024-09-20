@@ -24,6 +24,17 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
     return rtn
 
+@measure("vkdnw_hist")
+def compute_vkdnw_hist(net, inputs, targets, loss_fn, split_data=1):
+
+    tenas = get_tenas(net, net(inputs))
+    #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
+    #fisher = get_fisher(net, inputs)
+    #fisher_prob = get_fisher(net, inputs, use_logits=False)
+
+    lambdas =  torch.linalg.eigvalsh(tenas).detach().cpu().numpy()
+    return {i: lambdas[i] for i in range(len(lambdas))}
+
 def estimate_entropy_kde(data, method='scott'):
     if (data.max()-data.min() == 0.) or (sum(np.isnan(data)) + sum(np.isinf(data)) > 0):
         return None
