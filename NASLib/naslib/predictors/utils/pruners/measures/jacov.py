@@ -26,7 +26,8 @@ import torch
 import numpy as np
 
 from . import measure
-from vkdnw import get_statistical_tests, get_matrix_stats
+from scipy.stats import skew, kurtosis, kstest, cramervonmises, chisquare, wasserstein_distance, energy_distance, \
+    gaussian_kde
 
 
 def get_batch_jacobian(net, x, target):
@@ -67,4 +68,78 @@ def compute_jacob_cov_full(net, inputs, targets, split_data=1, loss_fn=None):
     # Compute gradients (but don't apply them)
     jacobs, _ = get_batch_jacobian(net, inputs, targets)
     jacobs = jacobs.reshape(jacobs.size(0), -1).cpu().numpy()
-    return get_matrix_stats(get_matrix_stats(np.corrcoef(jacobs)), 'jacov')
+    return get_matrix_stats(np.corrcoef(jacobs), 'jacov')
+
+def get_matrix_stats(matrix, matrix_name, ret_all=False):
+
+    try:
+        lambdas = torch.linalg.eigvalsh(matrix).detach()
+    except RuntimeError as e:
+        if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
+            print(str(e))
+            lambdas = torch.empty((2,), device=matrix.device)
+        else:
+            raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
+
+    rtn = {}
+
+    # Dispersion
+    rtn.update({
+            matrix_name + '_cond': lambdas.max().item() / lambdas.min().item() if lambdas.min().item() > 0 else None,
+            matrix_name + '_max': lambdas.max().item(),
+            matrix_name + '_min': lambdas.min().item(),
+            matrix_name + '_coef': lambdas.std().item() / lambdas.mean().item() if lambdas.mean().item() > 0 else None,
+    })
+
+    # Statistics
+    rtn.update(
+        {matrix_name+'_'+key: value for key, value in get_statistical_tests(lambdas.cpu().numpy()).items()}
+    )
+
+    # Eigenvalues
+    if ret_all:
+        rtn.update({matrix_name + '_lambda': lambdas})
+    return rtn
+
+def get_statistical_tests(lambdas):
+
+    if (lambdas.max() == np.inf) or (lambdas.min() == 0):
+        return {
+            'skew' : None,
+            'kurtosis' : None,
+            'kstest' : None,
+            'cramervonmises' : None,
+            'chisquare' : None,
+            'wasserstein_distance' : None,
+            'energy_distance' : None,
+            'entropy' : None,
+        }
+
+    # Normalize
+    lambdas = lambdas - lambdas.min()
+    lambdas = lambdas / lambdas.max()
+
+    # Compute
+    rtn = {
+        'skew': skew(lambdas),
+        'kurtosis': kurtosis(lambdas),
+        'kstest': kstest(lambdas, 'uniform')[1],
+        'cramervonmises': cramervonmises(lambdas, 'uniform').pvalue,
+        'chisquare': chisquare(lambdas).pvalue,
+        'wasserstein_distance': wasserstein_distance(lambdas, np.linspace(0, 1, len(lambdas))),
+        'energy_distance': energy_distance(lambdas, np.linspace(0, 1, len(lambdas))),
+        'entropy': estimate_entropy_kde(lambdas),
+    }
+
+    return rtn
+
+def estimate_entropy_kde(data, method='scott'):
+    if (data.max()-data.min() == 0.) or (sum(np.isnan(data)) + sum(np.isinf(data)) > 0):
+        return None
+    data = (data-data.min())/(data.max()-data.min())
+    try:
+        kde = gaussian_kde(data, bw_method=method)
+        return -np.mean(np.log(kde(np.linspace(0, 1, 100))))
+    except np.linalg.LinAlgError:
+        print("Error: Eigenvalues have zero variance.")
+        return None
