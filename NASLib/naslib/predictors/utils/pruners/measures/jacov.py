@@ -67,8 +67,8 @@ def compute_jacob_cov(net, inputs, targets, split_data=1, loss_fn=None):
 def compute_jacob_cov_full(net, inputs, targets, split_data=1, loss_fn=None):
     # Compute gradients (but don't apply them)
     jacobs, _ = get_batch_jacobian(net, inputs, targets)
-    jacobs = jacobs.reshape(jacobs.size(0), -1).cpu().numpy()
-    return get_matrix_stats(np.corrcoef(jacobs), 'jacov')
+    jacobs = jacobs.reshape(jacobs.size(0), -1)
+    return get_matrix_stats(torch.corrcoef(jacobs), 'jacov')
 
 def get_matrix_stats(matrix, matrix_name, ret_all=False):
 

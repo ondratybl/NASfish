@@ -175,7 +175,7 @@ def find_measures(
         )
 
     for k, v in measures_arr.items():
-        if k == "jacov" or k == 'epe_nas' or k=='nwot' or k=='zen' or k=='vkdnw' or k=='vkdnw_hist':
+        if k == "jacov" or k == 'epe_nas' or k=='nwot' or k=='zen' or k=='vkdnw' or k=='vkdnw_hist' or k=='jacov_full':
             measure_score = aggregate_batches(v)
         else:
             measure_score = aggregate_batches([sum_arr(i) for i in v])
