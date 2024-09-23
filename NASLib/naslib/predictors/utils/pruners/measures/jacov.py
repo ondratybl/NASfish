@@ -26,6 +26,7 @@ import torch
 import numpy as np
 
 from . import measure
+from vkdnw import get_statistical_tests, get_matrix_stats
 
 
 def get_batch_jacobian(net, x, target):
@@ -60,3 +61,10 @@ def compute_jacob_cov(net, inputs, targets, split_data=1, loss_fn=None):
         jc = np.nan
 
     return jc
+
+@measure("jacov_full", bn=True)
+def compute_jacob_cov_full(net, inputs, targets, split_data=1, loss_fn=None):
+    # Compute gradients (but don't apply them)
+    jacobs, _ = get_batch_jacobian(net, inputs, targets)
+    jacobs = jacobs.reshape(jacobs.size(0), -1).cpu().numpy()
+    return get_matrix_stats(get_matrix_stats(np.corrcoef(jacobs)), 'jacov')
