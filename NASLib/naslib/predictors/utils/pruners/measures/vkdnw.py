@@ -144,7 +144,7 @@ def get_fisher(model, input, use_logits=True):
 
     model.eval()
 
-    jacobian = get_jacobian(model, input)
+    jacobian = get_jacobian_index(model, input, 0)
     if ~use_logits:
         jacobian = torch.matmul(cholesky_covariance(model(input)), jacobian).detach()
 
@@ -197,3 +197,34 @@ def get_jacobian(model, input):
 
 	jacobian = vmap(jacobian_sample)(input)
 	return torch.cat([torch.flatten(v, start_dim=2, end_dim=-1) for v in jacobian], dim=2).detach()
+
+
+def get_jacobian_index(model, input, param_idx):
+    # Convert model to functional form
+    func_model, params, buffers = make_functional_with_buffers(model)
+
+    # Extract the gradient parameter subset
+    params_grad = {k: v.flatten()[param_idx:param_idx + 1].detach() for (k, v) in model.named_parameters()}
+
+    def jacobian_sample(sample):
+        def compute_prediction(params_grad_tmp):
+            # Copy the original parameters and modify the specified gradients
+            params_copy = [p.clone() for p in params]
+            for i, (k, v) in enumerate(params_grad_tmp.items()):
+                param_shape = params_copy[i].shape
+                param = params_copy[i].flatten()
+                param[param_idx:param_idx + 1] = v
+                params_copy[i] = param.view(param_shape)
+
+            # Compute the prediction using the functional model
+            return func_model(params_copy, buffers, sample.unsqueeze(0)).squeeze(0)
+
+        return jacrev(compute_prediction)(params_grad)
+
+    # Apply vmap to efficiently compute Jacobians for each input in the batch
+    jacobian_dict = vmap(jacobian_sample)(input)
+
+    # Concatenate the Jacobian results across parameters
+    ret = torch.cat([torch.flatten(v, start_dim=2, end_dim=-1) for v in jacobian_dict.values()], dim=2)
+
+    return ret.detach()
