@@ -70,7 +70,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
     })
 
     # Aggregation
-    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 1e-4) + 1.0 / (lambdas + 1e-4)).sum().item()})
+    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 2e-4) + 1.0 / (lambdas + 2e-4)).sum().item()})
 
     # Statistics
     rtn.update(
