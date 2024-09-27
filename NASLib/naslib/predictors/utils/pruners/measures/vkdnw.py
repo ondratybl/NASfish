@@ -13,13 +13,15 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
     tenas = get_tenas(net, net(inputs))
     #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
-    fisher = get_fisher(net, inputs)
+    ntk, fisher = get_fisher(net, inputs, return_all=True)
     #fisher_prob = get_fisher(net, inputs, use_logits=False)
 
     rtn = {}
     rtn.update(get_matrix_stats(tenas, 'tenas'))
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
-    rtn.update(get_matrix_stats(fisher, 'fisher'))
+    rtn.update(get_matrix_stats(ntk, 'ntk'))
+    rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
+    rtn.update({'fisher_dim': float(fisher.shape[1])})
     #rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob'))
 
     return rtn
@@ -46,7 +48,7 @@ def estimate_entropy_kde(data, method='scott'):
         print("Error: Eigenvalues have zero variance.")
         return None
 
-def get_matrix_stats(matrix, matrix_name, ret_all=False):
+def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
 
     try:
         lambdas = torch.linalg.eigvalsh(matrix).detach()
@@ -73,8 +75,9 @@ def get_matrix_stats(matrix, matrix_name, ret_all=False):
     )
 
     # Eigenvalues
-    if ret_all:
-        rtn.update({matrix_name + '_lambda': lambdas})
+    if ret_quantiles:
+        quantiles = torch.quantile(lambdas, torch.arange(0.1, 1.0, 0.1, device=lambdas.device))
+        rtn.update({matrix_name + '_lambda_' + str(i): v.item() for (i,v) in enumerate(quantiles)})
     return rtn
 
 
@@ -140,7 +143,7 @@ def get_tenas(model, output, use_logits=True):
 
     return ntk
 
-def get_fisher(model, input, use_logits=True):
+def get_fisher(model, input, use_logits=True, return_all=False):
 
     model.eval()
 
@@ -149,12 +152,16 @@ def get_fisher(model, input, use_logits=True):
         jacobian = torch.matmul(cholesky_covariance(model(input)), jacobian).detach()
 
     ntk = torch.mean(torch.matmul(jacobian, torch.transpose(jacobian, dim0=1, dim1=2)), dim=0).detach()
+    fisher = torch.mean(torch.matmul(torch.transpose(jacobian, dim0=1, dim1=2), jacobian), dim=0).detach()
 
     del jacobian
     gc.collect()
     torch.cuda.empty_cache()
 
-    return ntk
+    if return_all:
+        return ntk, fisher
+    else:
+        return ntk
 
 def cholesky_covariance(output):
 
