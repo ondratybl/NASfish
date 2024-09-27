@@ -55,7 +55,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
     except RuntimeError as e:
         if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
             print(str(e))
-            lambdas = torch.empty((2,), device=matrix.device)
+            lambdas = torch.zeros((2,), device=matrix.device)
         else:
             raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
 
@@ -68,6 +68,9 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
             matrix_name + '_min': lambdas.min().item(),
             matrix_name + '_coef': lambdas.std().item() / lambdas.mean().item() if lambdas.mean().item() > 0 else None,
     })
+
+    # Aggregation
+    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 1e-10) + 1.0 / (lambdas + 1e-10)).sum().item()})
 
     # Statistics
     rtn.update(
@@ -83,7 +86,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
 
 def get_statistical_tests(lambdas):
 
-    if (lambdas.max() == np.inf) or (lambdas.min() == 0):
+    if (lambdas.max() == np.inf) or (lambdas.min() == 0) or (lambdas.min() == lambdas.max()):
         return {
             'skew' : None,
             'kurtosis' : None,
