@@ -18,7 +18,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import types
 import copy
-import math
 
 from .p_utils import *
 from . import measures
@@ -42,7 +41,7 @@ def aggregate_batches(val):
         rtn = {}
         keys = val[0].keys()
         for k in keys:
-            rtn[k] = torch.tensor([v[k] for v in val if not math.isnan(v[k])]).mean().item()
+            rtn[k] = torch.tensor([v[k] for v in val if val]).mean().item()
         return rtn
     elif isinstance(val[0], float):
         return torch.tensor([v for v in val if v]).mean().item()
