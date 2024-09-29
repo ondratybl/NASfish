@@ -11,18 +11,17 @@ from . import measure
 @measure("vkdnw")
 def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
-    tenas = get_tenas(net, net(inputs))
+    #tenas = get_tenas(net, net(inputs))
     #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
-    ntk, fisher = get_fisher(net, inputs, return_all=True)
-    #fisher_prob = get_fisher(net, inputs, use_logits=False)
+    fisher = get_fisher(net, inputs)
+    fisher_prob = get_fisher(net, inputs, use_logits=False)
 
     rtn = {}
-    rtn.update(get_matrix_stats(tenas, 'tenas'))
+    #rtn.update(get_matrix_stats(tenas, 'tenas'))
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
-    rtn.update(get_matrix_stats(ntk, 'ntk'))
     rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
     rtn.update({'fisher_dim': float(fisher.shape[1])})
-    #rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob'))
+    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob', ret_quantiles=True))
 
     return rtn
 
@@ -146,7 +145,7 @@ def get_tenas(model, output, use_logits=True):
 
     return ntk
 
-def get_fisher(model, input, use_logits=True, return_all=False):
+def get_fisher(model, input, use_logits=True):
 
     model.eval()
 
@@ -154,17 +153,14 @@ def get_fisher(model, input, use_logits=True, return_all=False):
     if ~use_logits:
         jacobian = torch.matmul(cholesky_covariance(model(input)), jacobian).detach()
 
-    ntk = torch.mean(torch.matmul(jacobian, torch.transpose(jacobian, dim0=1, dim1=2)), dim=0).detach()
+    #ntk = torch.mean(torch.matmul(jacobian, torch.transpose(jacobian, dim0=1, dim1=2)), dim=0).detach()
     fisher = torch.mean(torch.matmul(torch.transpose(jacobian, dim0=1, dim1=2), jacobian), dim=0).detach()
 
     del jacobian
     gc.collect()
     torch.cuda.empty_cache()
 
-    if return_all:
-        return ntk, fisher
-    else:
-        return ntk
+    return fisher
 
 def cholesky_covariance(output):
 
