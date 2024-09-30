@@ -150,7 +150,7 @@ def get_fisher(model, input, use_logits=True):
     model.eval()
 
     jacobian = get_jacobian_index(model, input, 0)
-    if ~use_logits:
+    if not use_logits:
         jacobian = torch.matmul(cholesky_covariance(model(input)), jacobian).detach()
 
     #ntk = torch.mean(torch.matmul(jacobian, torch.transpose(jacobian, dim0=1, dim1=2)), dim=0).detach()
@@ -210,7 +210,7 @@ def get_jacobian_index(model, input, param_idx):
     func_model, params, buffers = make_functional_with_buffers(model)
 
     if len(params) > 250:
-        return torch.zeros_like(torch.empty(len(params), len(params), device=input.device, dtype=input.dtype)).detach()
+        return torch.zeros_like(torch.empty(input.shape[0], model.num_classes, 250, device=input.device, dtype=input.dtype)).detach()
 
     # Extract the gradient parameter subset
     params_grad = {k: v.flatten()[param_idx:param_idx + 1].detach() for (k, v) in model.named_parameters()}
