@@ -69,7 +69,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False):
     })
 
     # Aggregation
-    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 2e-4) + 1.0 / (lambdas + 2e-4)).sum().item()})
+    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 1e-32) + 1.0 / (lambdas + 1e-32)).sum().item()})
 
     # Statistics
     rtn.update(
@@ -208,6 +208,9 @@ def get_jacobian(model, input):
 def get_jacobian_index(model, input, param_idx):
     # Convert model to functional form
     func_model, params, buffers = make_functional_with_buffers(model)
+
+    if len(params) > 250:
+        return torch.zeros_like(torch.empty(len(params), len(params), device=input.device, dtype=input.dtype)).detach()
 
     # Extract the gradient parameter subset
     params_grad = {k: v.flatten()[param_idx:param_idx + 1].detach() for (k, v) in model.named_parameters()}
