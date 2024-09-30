@@ -43,8 +43,8 @@ def aggregate_batches(val):
         for k in keys:
             rtn[k] = torch.tensor([v[k] for v in val if v[k]]).mean().item()
         return rtn
-    elif isinstance(val[0], float):
-        return torch.tensor([v for v in val if v]).mean().item()
+    elif isinstance(val[0], (int, float)):
+        return torch.tensor([v for v in val if v], dtype=torch.float).mean().item()
     else:
         raise NotImplementedError(f"Unknown value: {type(val[0])}")
 
