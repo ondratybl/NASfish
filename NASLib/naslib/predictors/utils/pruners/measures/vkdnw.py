@@ -18,15 +18,18 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
     rtn = {}
     outputs = torch.softmax(net(inputs), dim=1)
+    outputs_mean = outputs.mean(dim=0)
     rtn.update({
         'class_nunique': float(torch.unique(torch.argmax(outputs, dim=1)).numel()),
-        'output_entropy': -torch.sum(outputs * torch.log(outputs), dim=1).mean().item(),
+        'output_entropy': -torch.sum(outputs_mean[outputs_mean>0] * torch.log(outputs_mean[outputs_mean>0])).item(),
     })
     #rtn.update(get_matrix_stats(tenas, 'tenas'))
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
     rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
+    rtn.update(get_matrix_stats(fisher, 'fisher_std', ret_quantiles=True, normalize=True))
     rtn.update({'fisher_dim': float(fisher.shape[1])})
     rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob', ret_quantiles=True))
+    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_std', ret_quantiles=True, normalize=True))
 
     return rtn
 
