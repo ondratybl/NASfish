@@ -17,6 +17,11 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
     fisher_prob = get_fisher(net, inputs, use_logits=False)
 
     rtn = {}
+    outputs = torch.softmax(net(inputs), dim=1)
+    rtn.update({
+        'class_nunique': float(torch.unique(torch.argmax(outputs, dim=1)).numel()),
+        'output_entropy': -torch.sum(outputs * torch.log(outputs), dim=1).mean().item(),
+    })
     #rtn.update(get_matrix_stats(tenas, 'tenas'))
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
     rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
@@ -165,7 +170,7 @@ def get_fisher(model, input, use_logits=True):
 def cholesky_covariance(output):
 
     # Cholesky decomposition of covariance matrix (notation from Theorem 1 in https://sci-hub.se/10.2307/2345957)
-    alpha = torch.tensor(0.01, dtype=torch.float16, device=output.device)
+    alpha = torch.tensor(0.05, dtype=torch.float16, device=output.device)
     prob = torch.nn.functional.softmax(output, dim=1) * (1 - alpha) + alpha / output.shape[1]
     q = torch.ones_like(prob) - torch.cumsum(prob, dim=1)
     q[:, -1] = torch.zeros_like(q[:, -1])
