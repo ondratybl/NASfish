@@ -26,10 +26,10 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
     #rtn.update(get_matrix_stats(tenas, 'tenas'))
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
     rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
-    rtn.update(get_matrix_stats(fisher, 'fisher_std', ret_quantiles=True, normalize=True))
+    rtn.update(get_matrix_stats(fisher, 'fisher_svd', ret_quantiles=True, svd=True))
     rtn.update({'fisher_dim': float(fisher.shape[1])})
     rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob', ret_quantiles=True))
-    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_std', ret_quantiles=True, normalize=True))
+    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_svd', ret_quantiles=True, svd=True))
 
     return rtn
 
@@ -55,19 +55,19 @@ def estimate_entropy_kde(data, method='scott'):
         print("Error: Eigenvalues have zero variance.")
         return None
 
-def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, normalize=False):
+def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, svd=False):
 
-    if normalize:
-        matrix = matrix / torch.norm(matrix, p=2)
-
-    try:
-        lambdas = torch.linalg.eigvalsh(matrix).detach()
-    except RuntimeError as e:
-        if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
-            print(f'Matrix {matrix_name}: ' + str(e))
-            lambdas = torch.zeros((2,), device=matrix.device)
-        else:
-            raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
+    if svd:
+        lambdas = torch.svd(matrix).S.detach()
+    else:
+        try:
+            lambdas = torch.linalg.eigvalsh(matrix).detach()
+        except RuntimeError as e:
+            if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
+                print(f'Matrix {matrix_name}: ' + str(e))
+                lambdas = torch.zeros((2,), device=matrix.device)
+            else:
+                raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
 
     rtn = {}
 
