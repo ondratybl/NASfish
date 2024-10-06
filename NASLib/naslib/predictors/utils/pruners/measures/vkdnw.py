@@ -27,7 +27,7 @@ def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
     #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
     rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
     rtn.update(get_matrix_stats(fisher, 'fisher_svd', ret_quantiles=True, svd=True))
-    rtn.update({'fisher_dim': float(fisher.shape[1])})
+    rtn.update({'fisher_dim': float(len(list(net.named_parameters())))})
     rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob', ret_quantiles=True))
     rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_svd', ret_quantiles=True, svd=True))
 
@@ -225,11 +225,9 @@ def get_jacobian_index(model, input, param_idx):
     # Convert model to functional form
     func_model, params, buffers = make_functional_with_buffers(model)
 
-    if len(params) > 250:
-        return torch.zeros_like(torch.empty(input.shape[0], model.num_classes, 250, device=input.device, dtype=input.dtype)).detach()
-
     # Extract the gradient parameter subset
     params_grad = {k: v.flatten()[param_idx:param_idx + 1].detach() for (k, v) in model.named_parameters()}
+    params_grad = dict(list(params_grad.items())[:250])
 
     def jacobian_sample(sample):
         def compute_prediction(params_grad_tmp):
