@@ -121,9 +121,9 @@ def get_statistical_tests(lambdas):
     rtn = {
         'skew': skew(lambdas),
         'kurtosis': kurtosis(lambdas),
-        'kstest': kstest(lambdas, 'uniform')[1],
-        'cramervonmises': cramervonmises(lambdas, 'uniform').pvalue,
-        'chisquare': chisquare(lambdas).pvalue,
+        'kstest': kstest(lambdas, 'uniform')[0],
+        'cramervonmises': cramervonmises(lambdas, 'uniform').statistic,
+        'chisquare': chisquare(lambdas).statistic,
         'wasserstein_distance': wasserstein_distance(lambdas, np.linspace(0, 1, len(lambdas))),
         'energy_distance': energy_distance(lambdas, np.linspace(0, 1, len(lambdas))),
         'entropy': estimate_entropy_kde(lambdas),
