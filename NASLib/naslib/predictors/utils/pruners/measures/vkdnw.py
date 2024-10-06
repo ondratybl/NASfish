@@ -227,7 +227,7 @@ def get_jacobian_index(model, input, param_idx):
 
     # Extract the gradient parameter subset
     params_grad = {k: v.flatten()[param_idx:param_idx + 1].detach() for (k, v) in model.named_parameters()}
-    params_grad = dict(list(params_grad.items())[:250])
+    params_grad = dict(list(params_grad.items())[:270])
 
     def jacobian_sample(sample):
         def compute_prediction(params_grad_tmp):
