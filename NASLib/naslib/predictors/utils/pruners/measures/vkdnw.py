@@ -101,7 +101,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, svd=False):
 
 def get_statistical_tests(lambdas):
 
-    if (lambdas.max() == np.inf) or (lambdas.min() == 0) or (lambdas.min() == lambdas.max()):
+    if (lambdas.max() == np.inf) or (lambdas.max() == 0) or (lambdas.min() == lambdas.max()):
         return {
             'skew' : None,
             'kurtosis' : None,
