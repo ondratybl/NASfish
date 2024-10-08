@@ -11,38 +11,20 @@ from . import measure
 @measure("vkdnw")
 def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
-    #tenas = get_tenas(net, net(inputs))
-    #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
     fisher = get_fisher(net, inputs)
     fisher_prob = get_fisher(net, inputs, use_logits=False)
 
-    rtn = {}
     outputs = torch.softmax(net(inputs), dim=1)
     outputs_mean = outputs.mean(dim=0)
-    rtn.update({
+    rtn = {
         'class_nunique': float(torch.unique(torch.argmax(outputs, dim=1)).numel()),
-        'output_entropy': -torch.sum(outputs_mean[outputs_mean>0] * torch.log(outputs_mean[outputs_mean>0])).item(),
-    })
-    #rtn.update(get_matrix_stats(tenas, 'tenas'))
-    #rtn.update(get_matrix_stats(tenas_prob, 'tenas_prob'))
-    rtn.update(get_matrix_stats(fisher, 'fisher', ret_quantiles=True))
+        'output_entropy': -torch.sum(outputs_mean[outputs_mean > 0] * torch.log(outputs_mean[outputs_mean > 0])).item(),
+        'fisher_dim': float(len(list(net.named_parameters()))),
+    }
     rtn.update(get_matrix_stats(fisher, 'fisher_svd', ret_quantiles=True, svd=True))
-    rtn.update({'fisher_dim': float(len(list(net.named_parameters())))})
-    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob', ret_quantiles=True))
     rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_svd', ret_quantiles=True, svd=True))
 
     return rtn
-
-@measure("vkdnw_hist")
-def compute_vkdnw_hist(net, inputs, targets, loss_fn, split_data=1):
-
-    tenas = get_tenas(net, net(inputs))
-    #tenas_prob = get_tenas(net, net(inputs), use_logits=False)
-    #fisher = get_fisher(net, inputs)
-    #fisher_prob = get_fisher(net, inputs, use_logits=False)
-
-    lambdas =  torch.linalg.eigvalsh(tenas).detach().cpu().numpy()
-    return {i: lambdas[i] for i in range(len(lambdas))}
 
 def estimate_entropy_kde(data, method='scott'):
     if (data.max()-data.min() == 0.) or (sum(np.isnan(data)) + sum(np.isinf(data)) > 0):
@@ -117,13 +99,21 @@ def get_statistical_tests(lambdas):
     lambdas = lambdas - lambdas.min()
     lambdas = lambdas / lambdas.max()
 
+    bin_edges = [1]
+    for i in range(18):
+        bin_edges.append(bin_edges[-1] / 10)
+    bin_edges.append(0)
+    bin_edges = bin_edges[::-1]
+
+    f_obs, _ = np.histogram(lambdas, bins=bin_edges)
+
     # Compute
     rtn = {
         'skew': skew(lambdas),
         'kurtosis': kurtosis(lambdas),
         'kstest': kstest(lambdas, 'uniform')[0],
         'cramervonmises': cramervonmises(lambdas, 'uniform').statistic,
-        'chisquare': chisquare(lambdas).statistic,
+        'chisquare': chisquare(f_obs).statistic,
         'wasserstein_distance': wasserstein_distance(lambdas, np.linspace(0, 1, len(lambdas))),
         'energy_distance': energy_distance(lambdas, np.linspace(0, 1, len(lambdas))),
         'entropy': estimate_entropy_kde(lambdas),
