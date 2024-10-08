@@ -55,6 +55,7 @@ def get_timestamp():
 @click.option('--config', default='../graf_nas/configs/nb201.json')
 @click.option('--wandb_key', required=True)
 @click.option('--wandb_project', default='graf_sampling')
+@click.option('--wandb_name', default='default_name')
 @click.option('--target_path', required=True,
                         help="Path to network targets (e.g. accuracy). It should be a .csv file with net hashes as "
                              "index and `target_name` among the columns.")
@@ -62,14 +63,14 @@ def get_timestamp():
 @click.option('--start_batch', default=0)
 @click.option('--batch_size', default=32)
 @click.option('--num_batches', default=1)
-def main(benchmark, dataset, config, wandb_key, wandb_project, target_path, out_path, start_batch, batch_size, num_batches):
+def main(benchmark, dataset, config, wandb_key, wandb_project, wandb_name, target_path, out_path, start_batch, batch_size, num_batches):
 
     timestamp = get_timestamp()
     out_path = out_path + f'{timestamp}.csv'
 
     # initialize wandb
     wandb.login(key=wandb_key)
-    wandb.init(project=wandb_project, config={'benchmark': benchmark, 'dataset': dataset, 'config': config, 'target_path': target_path, 'out_path': out_path, 'start_batch': start_batch, 'batch_size': batch_size, 'num_batches': num_batches}, name=f"cache_{benchmark}_{dataset}_{get_timestamp()}", tags=[benchmark, dataset, 'cache'])
+    wandb.init(project=wandb_project, config={'benchmark': benchmark, 'dataset': dataset, 'config': config, 'target_path': target_path, 'out_path': out_path, 'start_batch': start_batch, 'batch_size': batch_size, 'num_batches': num_batches}, name=wandb_name, tags=[benchmark, dataset, 'cache'])
 
     zcps = ['vkdnw', 'epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain', 'snip', 'synflow', 'zen']
 
