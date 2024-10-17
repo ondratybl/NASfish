@@ -72,7 +72,7 @@ def main(benchmark, dataset, config, wandb_key, wandb_project, wandb_name, targe
     wandb.login(key=wandb_key)
     wandb.init(project=wandb_project, config={'benchmark': benchmark, 'dataset': dataset, 'config': config, 'target_path': target_path, 'out_path': out_path, 'start_batch': start_batch, 'batch_size': batch_size, 'num_batches': num_batches}, name=wandb_name, tags=[benchmark, dataset, 'cache'])
 
-    zcps = ['vkdnw', 'epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain', 'snip', 'synflow', 'zen']
+    zcps = ['az', 'vkdnw', 'epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain', 'snip', 'synflow', 'zen']
 
     feature_funcs = load_from_config(config, benchmark)
 

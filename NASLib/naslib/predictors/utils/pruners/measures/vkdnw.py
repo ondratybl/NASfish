@@ -11,18 +11,16 @@ from . import measure
 @measure("vkdnw")
 def compute_vkdnw(net, inputs, targets, loss_fn, split_data=1):
 
-    fisher = get_fisher(net, inputs)
-    fisher_prob = get_fisher(net, inputs, use_logits=False)
-
     outputs = torch.softmax(net(inputs), dim=1)
     outputs_mean = outputs.mean(dim=0)
     rtn = {
         'class_nunique': float(torch.unique(torch.argmax(outputs, dim=1)).numel()),
         'output_entropy': -torch.sum(outputs_mean[outputs_mean > 0] * torch.log(outputs_mean[outputs_mean > 0])).item(),
-        'fisher_dim': float(len(list(net.named_parameters()))),
+        'param_vector_count': float(len(list(net.named_parameters()))),
     }
-    rtn.update(get_matrix_stats(fisher, 'fisher_svd', ret_quantiles=True, svd=True))
-    rtn.update(get_matrix_stats(fisher_prob, 'fisher_prob_svd', ret_quantiles=True, svd=True))
+
+    fisher_prob = get_fisher(net, inputs, use_logits=False)
+    rtn.update(get_matrix_stats(fisher_prob, 'vkdnw'))
 
     return rtn
 
@@ -37,24 +35,19 @@ def estimate_entropy_kde(data, method='scott'):
         print("Error: Eigenvalues have zero variance.")
         return None
 
-def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, svd=False):
+def get_matrix_stats(matrix, matrix_name):
 
-    if svd:
+    try:
         lambdas = torch.svd(matrix).S.detach()
-    else:
-        try:
-            lambdas = torch.linalg.eigvalsh(matrix).detach()
-        except RuntimeError as e:
-            if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
-                print(f'Matrix {matrix_name}: ' + str(e))
-                lambdas = torch.zeros((2,), device=matrix.device)
-            else:
-                raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
-
-    rtn = {}
+    except RuntimeError as e:
+        if ("CUDA error: an illegal memory access was encountered" in str(e)) or isinstance(e, torch._C._LinAlgError):
+            print(f'Matrix {matrix_name}: ' + str(e))
+            lambdas = torch.zeros((2,), device=matrix.device)
+        else:
+            raise  # re-raise the exception if it's not the specific RuntimeError you want to catch
 
     # Dispersion
-    rtn.update({
+    rtn = {
             matrix_name + '_cond': lambdas.max().item() / lambdas.min().item() if lambdas.min().item() > 0 else None,
             matrix_name + '_max': lambdas.max().item(),
             matrix_name + '_min': lambdas.min().item(),
@@ -64,10 +57,7 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, svd=False):
             matrix_name + '_norm_inf': torch.log(torch.max(torch.sum(torch.abs(matrix), dim=1))).item(),
             matrix_name + '_norm_spec': torch.log(torch.max(torch.svd(matrix).S)).item(),
             matrix_name + '_norm_nuc': torch.log(torch.norm(matrix, p='nuc')).item(),
-    })
-
-    # Aggregation
-    rtn.update({matrix_name + '_agg': (torch.log(lambdas + 1e-32) + 1.0 / (lambdas + 1e-32)).sum().item()})
+    }
 
     # Statistics
     rtn.update(
@@ -75,9 +65,8 @@ def get_matrix_stats(matrix, matrix_name, ret_quantiles=False, svd=False):
     )
 
     # Eigenvalues
-    if ret_quantiles:
-        quantiles = torch.quantile(lambdas, torch.arange(0.1, 1.0, 0.1, device=lambdas.device))
-        rtn.update({matrix_name + '_lambda_' + str(i): v.item() for (i,v) in enumerate(quantiles)})
+    quantiles = torch.quantile(lambdas, torch.arange(0.1, 1.0, 0.1, device=lambdas.device))
+    rtn.update({matrix_name + '_lambda_' + str(i): v.item() for (i,v) in enumerate(quantiles)})
     return rtn
 
 
@@ -159,7 +148,6 @@ def get_fisher(model, input, use_logits=True):
     if not use_logits:
         jacobian = torch.matmul(cholesky_covariance(model(input)), jacobian).detach()
 
-    #ntk = torch.mean(torch.matmul(jacobian, torch.transpose(jacobian, dim0=1, dim1=2)), dim=0).detach()
     fisher = torch.mean(torch.matmul(torch.transpose(jacobian, dim0=1, dim1=2), jacobian), dim=0).detach()
 
     del jacobian
@@ -194,7 +182,7 @@ def cholesky_covariance(output):
     cov_cholesky = torch.matmul(L, torch.transpose(L, dim0=1, dim1=2))
 
     max_error = torch.abs(cov_true - cov_cholesky).max().item()
-    if max_error > 1.0e-4:
+    if max_error > 1.0e-3:
         print(f'Cholesky decomposition back-test error with max error {max_error}')
 
     return L.detach()
