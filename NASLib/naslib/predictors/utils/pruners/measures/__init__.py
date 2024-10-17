@@ -63,6 +63,7 @@ def load_all():
     from . import l2_norm
     from . import nwot
     from . import vkdnw
+    from . import az
 
 # TODO: should we do that by default?
 load_all()
